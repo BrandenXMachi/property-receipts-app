@@ -48,9 +48,6 @@ function setupEventListeners() {
         if (e.key === 'Enter') handleLogin();
     });
 
-    // Logout
-    document.getElementById('logoutButton').addEventListener('click', handleLogout);
-
     // Property cards
     document.querySelectorAll('.property-card').forEach(card => {
         card.addEventListener('click', () => {

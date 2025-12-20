@@ -440,7 +440,7 @@ body {
 /* Tab Content */
 .tab-content {
     display: none;
-    padding: 12px;
+    padding: 8px;
     animation: fadeIn 0.3s ease-out;
 }
 
@@ -497,6 +497,7 @@ body {
     grid-template-columns: repeat(7, 1fr);
     gap: 2px;
     margin-bottom: 100px;
+    padding: 0 2px;
 }
 
 .calendar-day {
@@ -567,9 +568,12 @@ body {
 /* Year View */
 .year-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(3, auto);
+    gap: 12px;
     margin-bottom: 100px;
+    overflow-x: auto;
+    padding: 4px;
 }
 
 .year-month {
@@ -1042,7 +1046,8 @@ body {
     }
     
     .calendar-grid {
-        gap: 8px;
+        gap: 4px;
+        padding: 0 8px;
     }
     
     .calendar-day {
@@ -1050,7 +1055,8 @@ body {
     }
     
     .year-grid {
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(6, 1fr);
+        overflow-x: visible;
     }
 }
 
@@ -1064,8 +1070,14 @@ body {
         max-width: 600px;
     }
     
+    .calendar-grid {
+        gap: 6px;
+        padding: 0 12px;
+    }
+    
     .year-grid {
         grid-template-columns: repeat(6, 1fr);
+        overflow-x: visible;
     }
 }
 
