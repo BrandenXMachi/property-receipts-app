@@ -26,7 +26,7 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-    background: url('https://static.vecteezy.com/system/resources/previews/000/115/058/non_2x/geometric-polygonal-background-vector.jpg') center center / cover fixed;
+    background: url('background.jpg') center center / cover fixed;
     color: var(--text-primary);
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
