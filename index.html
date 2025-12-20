@@ -25,6 +25,7 @@
                 <input type="password" id="passwordInput" placeholder="Enter password" autocomplete="off">
                 <button id="loginButton" class="btn-primary">Enter</button>
                 <p id="loginError" class="error-message"></p>
+                <div id="lockoutMessage" class="lockout-message" style="display:none;"></div>
             </div>
         </div>
     </div>
@@ -117,7 +118,12 @@
                     </svg>
                 </button>
             </div>
-            <div class="calendar-grid" id="calendarGrid"></div>
+            <div class="calendar-view-toggle">
+                <button id="monthViewBtn" class="view-toggle-btn active">Month</button>
+                <button id="yearViewBtn" class="view-toggle-btn">Year</button>
+            </div>
+            <div id="calendarGrid" class="calendar-grid"></div>
+            <div id="yearGrid" class="year-grid" style="display:none;"></div>
         </div>
 
         <!-- Categories Tab -->

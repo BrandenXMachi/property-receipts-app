@@ -7,11 +7,16 @@ let appState = {
     summaryYear: new Date().getFullYear(),
     currentReceipt: null,
     mediaRecorder: null,
-    audioChunks: []
+    audioChunks: [],
+    calendarView: 'month', // 'month' or 'year'
+    loginAttempts: 0,
+    lockoutUntil: null
 };
 
 // Data Storage
 const PASSWORD = 'Brandrew';
+const MAX_LOGIN_ATTEMPTS = 7;
+const LOCKOUT_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
@@ -19,6 +24,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initializeApp() {
+    // Check lockout status
+    checkLockoutStatus();
+    
     // Check if already authenticated
     const isAuth = sessionStorage.getItem('authenticated');
     if (isAuth === 'true') {
@@ -88,6 +96,15 @@ function setupEventListeners() {
         renderCalendar();
     });
 
+    // Calendar view toggle
+    document.getElementById('monthViewBtn').addEventListener('click', () => {
+        switchCalendarView('month');
+    });
+
+    document.getElementById('yearViewBtn').addEventListener('click', () => {
+        switchCalendarView('year');
+    });
+
     // Summary year navigation
     document.getElementById('prevYear').addEventListener('click', () => {
         appState.summaryYear--;
@@ -129,8 +146,100 @@ function setupEventListeners() {
     document.getElementById('exportReceipts').addEventListener('click', exportAllReceipts);
 }
 
+// Lockout Management
+function checkLockoutStatus() {
+    const lockoutData = localStorage.getItem('loginLockout');
+    if (lockoutData) {
+        const { attempts, lockoutUntil } = JSON.parse(lockoutData);
+        appState.loginAttempts = attempts;
+        appState.lockoutUntil = lockoutUntil;
+
+        if (lockoutUntil && Date.now() < lockoutUntil) {
+            // Still locked out
+            disableLogin();
+            startLockoutTimer();
+        } else if (lockoutUntil && Date.now() >= lockoutUntil) {
+            // Lockout expired
+            clearLockout();
+        }
+    }
+}
+
+function disableLogin() {
+    const passwordInput = document.getElementById('passwordInput');
+    const loginButton = document.getElementById('loginButton');
+    
+    passwordInput.disabled = true;
+    loginButton.disabled = true;
+}
+
+function enableLogin() {
+    const passwordInput = document.getElementById('passwordInput');
+    const loginButton = document.getElementById('loginButton');
+    const lockoutMessage = document.getElementById('lockoutMessage');
+    
+    passwordInput.disabled = false;
+    loginButton.disabled = false;
+    lockoutMessage.style.display = 'none';
+}
+
+function startLockoutTimer() {
+    const lockoutMessage = document.getElementById('lockoutMessage');
+    lockoutMessage.style.display = 'block';
+
+    const updateTimer = () => {
+        const remainingMs = appState.lockoutUntil - Date.now();
+        
+        if (remainingMs <= 0) {
+            clearLockout();
+            return;
+        }
+
+        const minutes = Math.floor(remainingMs / 60000);
+        const seconds = Math.floor((remainingMs % 60000) / 1000);
+        lockoutMessage.textContent = `Too many failed attempts. Please wait ${minutes}:${seconds.toString().padStart(2, '0')} before trying again.`;
+
+        setTimeout(updateTimer, 1000);
+    };
+
+    updateTimer();
+}
+
+function clearLockout() {
+    appState.loginAttempts = 0;
+    appState.lockoutUntil = null;
+    localStorage.removeItem('loginLockout');
+    enableLogin();
+}
+
+function recordFailedAttempt() {
+    appState.loginAttempts++;
+
+    if (appState.loginAttempts >= MAX_LOGIN_ATTEMPTS) {
+        // Lock out the user
+        appState.lockoutUntil = Date.now() + LOCKOUT_DURATION;
+        localStorage.setItem('loginLockout', JSON.stringify({
+            attempts: appState.loginAttempts,
+            lockoutUntil: appState.lockoutUntil
+        }));
+        disableLogin();
+        startLockoutTimer();
+    } else {
+        // Just save the attempt count
+        localStorage.setItem('loginLockout', JSON.stringify({
+            attempts: appState.loginAttempts,
+            lockoutUntil: null
+        }));
+    }
+}
+
 // Authentication
 function handleLogin() {
+    // Check if locked out
+    if (appState.lockoutUntil && Date.now() < appState.lockoutUntil) {
+        return;
+    }
+
     const password = document.getElementById('passwordInput').value;
     const errorEl = document.getElementById('loginError');
 
@@ -138,11 +247,29 @@ function handleLogin() {
         appState.isAuthenticated = true;
         sessionStorage.setItem('authenticated', 'true');
         errorEl.textContent = '';
-        showScreen('homeScreen');
-        updatePropertyCounts();
+        
+        // Clear lockout on successful login
+        clearLockout();
+        
+        // Add fade-out animation to login screen
+        const loginScreen = document.getElementById('loginScreen');
+        loginScreen.classList.add('fade-out');
+        
+        // Wait for animation to complete before switching screens
+        setTimeout(() => {
+            showScreen('homeScreen');
+            updatePropertyCounts();
+            loginScreen.classList.remove('fade-out');
+        }, 500);
     } else {
-        errorEl.textContent = 'Incorrect password. Please try again.';
+        const remainingAttempts = MAX_LOGIN_ATTEMPTS - appState.loginAttempts - 1;
+        if (remainingAttempts > 0) {
+            errorEl.textContent = `Incorrect password. ${remainingAttempts} attempt${remainingAttempts !== 1 ? 's' : ''} remaining.`;
+        } else {
+            errorEl.textContent = 'Incorrect password.';
+        }
         document.getElementById('passwordInput').value = '';
+        recordFailedAttempt();
     }
 }
 
@@ -150,6 +277,7 @@ function handleLogout() {
     appState.isAuthenticated = false;
     sessionStorage.removeItem('authenticated');
     document.getElementById('passwordInput').value = '';
+    document.getElementById('loginError').textContent = '';
     showScreen('loginScreen');
 }
 
@@ -170,7 +298,6 @@ function openProperty(property) {
     
     showScreen('propertyScreen');
     switchTab('calendar');
-    renderCalendar();
 }
 
 function updatePropertyCounts() {
@@ -206,11 +333,120 @@ function switchTab(tabName) {
 
     // Render content based on tab
     if (tabName === 'calendar') {
-        renderCalendar();
+        if (appState.calendarView === 'month') {
+            renderCalendar();
+        } else {
+            renderYearView();
+        }
     } else if (tabName === 'categories') {
         renderCategories();
     } else if (tabName === 'summary') {
         renderSummary();
+    }
+}
+
+// Calendar View Toggle
+function switchCalendarView(view) {
+    appState.calendarView = view;
+    
+    // Update toggle buttons
+    document.getElementById('monthViewBtn').classList.toggle('active', view === 'month');
+    document.getElementById('yearViewBtn').classList.toggle('active', view === 'year');
+    
+    // Show/hide appropriate view
+    if (view === 'month') {
+        document.getElementById('calendarGrid').style.display = 'grid';
+        document.getElementById('yearGrid').style.display = 'none';
+        document.querySelector('.calendar-header').style.display = 'flex';
+        renderCalendar();
+    } else {
+        document.getElementById('calendarGrid').style.display = 'none';
+        document.getElementById('yearGrid').style.display = 'grid';
+        document.querySelector('.calendar-header').style.display = 'none';
+        renderYearView();
+    }
+}
+
+// Year View Rendering
+function renderYearView() {
+    const yearGrid = document.getElementById('yearGrid');
+    yearGrid.innerHTML = '';
+    
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'];
+    
+    const receipts = getReceiptsByProperty(appState.currentProperty);
+    
+    for (let month = 0; month < 12; month++) {
+        const monthCard = document.createElement('div');
+        monthCard.className = 'year-month';
+        
+        const monthName = document.createElement('div');
+        monthName.className = 'year-month-name';
+        monthName.textContent = monthNames[month];
+        monthCard.appendChild(monthName);
+        
+        // Create mini calendar
+        const miniCal = document.createElement('div');
+        miniCal.className = 'year-mini-calendar';
+        
+        // Day headers
+        const dayHeaders = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+        dayHeaders.forEach(day => {
+            const header = document.createElement('div');
+            header.className = 'year-mini-day header';
+            header.textContent = day;
+            miniCal.appendChild(header);
+        });
+        
+        // Get first day and number of days
+        const firstDay = new Date(appState.currentYear, month, 1).getDay();
+        const daysInMonth = new Date(appState.currentYear, month + 1, 0).getDate();
+        const prevMonthDays = new Date(appState.currentYear, month, 0).getDate();
+        
+        // Previous month days
+        for (let i = firstDay - 1; i >= 0; i--) {
+            const day = document.createElement('div');
+            day.className = 'year-mini-day other-month';
+            day.textContent = prevMonthDays - i;
+            miniCal.appendChild(day);
+        }
+        
+        // Current month days
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dayEl = document.createElement('div');
+            dayEl.className = 'year-mini-day';
+            dayEl.textContent = day;
+            
+            // Check for receipts
+            const dateStr = `${appState.currentYear}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const hasReceipts = receipts.some(r => r.date === dateStr);
+            if (hasReceipts) {
+                dayEl.classList.add('has-receipts');
+            }
+            
+            miniCal.appendChild(dayEl);
+        }
+        
+        // Next month days to fill grid
+        const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
+        const remainingCells = totalCells - (firstDay + daysInMonth);
+        for (let i = 1; i <= remainingCells; i++) {
+            const day = document.createElement('div');
+            day.className = 'year-mini-day other-month';
+            day.textContent = i;
+            miniCal.appendChild(day);
+        }
+        
+        monthCard.appendChild(miniCal);
+        
+        // Click handler to jump to month
+        monthCard.addEventListener('click', () => {
+            appState.currentMonth = month;
+            switchCalendarView('month');
+        });
+        
+        yearGrid.appendChild(monthCard);
     }
 }
 
