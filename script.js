@@ -260,6 +260,7 @@ function handleLogin() {
             showScreen('homeScreen');
             updatePropertyCounts();
             loginScreen.classList.remove('fade-out');
+            loginScreen.classList.add('hidden');
         }, 500);
     } else {
         const remainingAttempts = MAX_LOGIN_ATTEMPTS - appState.loginAttempts - 1;

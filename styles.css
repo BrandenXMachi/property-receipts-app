@@ -62,9 +62,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #1E40AF 0%, #2563EB 50%, #7C3AED 100%);
-    background-size: 200% 200%;
-    animation: gradientShift 8s ease infinite;
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 70%, #f5f5f5 100%);
     position: relative;
     overflow: hidden;
 }
@@ -76,13 +74,8 @@ body {
     left: -50%;
     width: 200%;
     height: 200%;
-    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 70%);
     animation: rotate 20s linear infinite;
-}
-
-@keyframes gradientShift {
-    0%, 100% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
 }
 
 @keyframes rotate {
@@ -102,7 +95,12 @@ body {
     to {
         opacity: 0;
         transform: scale(1.1);
+        display: none;
     }
+}
+
+#loginScreen.hidden {
+    display: none !important;
 }
 
 .login-container {
@@ -112,11 +110,11 @@ body {
     width: 90%;
     position: relative;
     z-index: 1;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(245, 245, 245, 0.95);
     backdrop-filter: blur(10px);
     border-radius: 24px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 
 .logo {
@@ -143,14 +141,14 @@ body {
 
 .login-container h1 {
     font-size: 32px;
-    color: white;
+    color: #1a1a1a;
     margin-bottom: 10px;
     font-weight: 600;
     letter-spacing: -0.5px;
 }
 
 .subtitle {
-    color: rgba(255, 255, 255, 0.9);
+    color: #4a4a4a;
     font-size: 16px;
     margin-bottom: 40px;
 }
@@ -164,28 +162,30 @@ body {
 .login-form input {
     padding: 16px 20px;
     font-size: 18px;
-    border: none;
+    border: 2px solid #e0e0e0;
     border-radius: 12px;
-    background: rgba(255, 255, 255, 0.95);
+    background: white;
     color: var(--text-primary);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     transition: all 0.3s ease;
 }
 
 .login-form input:focus {
     outline: none;
     background: white;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15), 0 0 0 3px rgba(255, 255, 255, 0.3);
+    border-color: var(--primary);
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.2);
     transform: translateY(-2px);
 }
 
 .login-form input:disabled {
     background: rgba(200, 200, 200, 0.5);
     cursor: not-allowed;
+    border-color: #ccc;
 }
 
 .error-message {
-    color: #FFE5E5;
+    color: #dc2626;
     font-size: 14px;
     min-height: 20px;
     margin-top: -8px;
@@ -193,13 +193,13 @@ body {
 }
 
 .lockout-message {
-    color: #FFE5E5;
+    color: #dc2626;
     font-size: 16px;
     font-weight: 600;
-    background: rgba(239, 68, 68, 0.2);
+    background: rgba(239, 68, 68, 0.1);
     padding: 12px;
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(239, 68, 68, 0.3);
     margin-top: 12px;
 }
 
@@ -440,7 +440,7 @@ body {
 /* Tab Content */
 .tab-content {
     display: none;
-    padding: 16px;
+    padding: 12px;
     animation: fadeIn 0.3s ease-out;
 }
 
@@ -495,7 +495,7 @@ body {
 .calendar-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 4px;
+    gap: 2px;
     margin-bottom: 100px;
 }
 
