@@ -643,30 +643,68 @@ function openCamera() {
     document.getElementById('cameraInput').click();
 }
 
+// Compress image to reduce storage size
+function compressImage(file, maxWidth = 1200, quality = 0.7) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                // Calculate new dimensions
+                let width = img.width;
+                let height = img.height;
+                
+                if (width > maxWidth) {
+                    height = (height * maxWidth) / width;
+                    width = maxWidth;
+                }
+                
+                // Create canvas and compress
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // Convert to compressed JPEG
+                const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+                resolve(compressedDataUrl);
+            };
+            img.onerror = reject;
+            img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
 function handleImageCapture(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        const imageData = e.target.result;
-        
-        // Create new receipt
-        const receipt = {
-            id: Date.now().toString(),
-            property: appState.currentProperty,
-            image: imageData,
-            date: new Date().toISOString().split('T')[0],
-            amount: '',
-            category: 'other',
-            note: '',
-            voiceNote: null
-        };
+    // Compress image before storing
+    compressImage(file, 1200, 0.7)
+        .then(compressedImage => {
+            // Create new receipt with compressed image
+            const receipt = {
+                id: Date.now().toString(),
+                property: appState.currentProperty,
+                image: compressedImage,
+                date: new Date().toISOString().split('T')[0],
+                amount: '',
+                category: 'other',
+                note: '',
+                voiceNote: null
+            };
 
-        appState.currentReceipt = receipt;
-        showReceiptModal(receipt);
-    };
-    reader.readAsDataURL(file);
+            appState.currentReceipt = receipt;
+            showReceiptModal(receipt);
+        })
+        .catch(error => {
+            console.error('Error compressing image:', error);
+            alert('Error processing image. Please try again.');
+        });
 
     // Reset input
     event.target.value = '';
