@@ -810,9 +810,9 @@ function handleImageCapture(event) {
 }
 
 // Receipt Gallery
-function showReceiptGallery(dateStr) {
-    const receipts = getReceiptsByProperty(appState.currentProperty)
-        .filter(r => r.date === dateStr);
+async function showReceiptGallery(dateStr) {
+    const allReceipts = await getReceiptsByProperty(appState.currentProperty);
+    const receipts = allReceipts.filter(r => r.date === dateStr);
 
     document.getElementById('galleryDate').textContent = 
         new Date(dateStr).toLocaleDateString('en-US', { 
@@ -864,9 +864,9 @@ function showReceiptGallery(dateStr) {
     showScreen('galleryScreen');
 }
 
-function showCategoryReceipts(category) {
-    const receipts = getReceiptsByProperty(appState.currentProperty)
-        .filter(r => (r.category || 'other') === category);
+async function showCategoryReceipts(category) {
+    const allReceipts = await getReceiptsByProperty(appState.currentProperty);
+    const receipts = allReceipts.filter(r => (r.category || 'other') === category);
 
     if (receipts.length === 0) return;
 
@@ -882,7 +882,7 @@ function showCategoryReceipts(category) {
     // Show most recent date
     const dates = Object.keys(byDate).sort().reverse();
     if (dates.length > 0) {
-        showReceiptGallery(dates[0]);
+        await showReceiptGallery(dates[0]);
     }
 }
 
