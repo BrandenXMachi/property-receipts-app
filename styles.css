@@ -610,6 +610,8 @@ body::before {
     padding: 0;
     max-width: 100%;
     box-sizing: border-box;
+    transform: scale(0.91);
+    transform-origin: top left;
 }
 
 .calendar-day {
