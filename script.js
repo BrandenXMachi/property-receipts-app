@@ -480,14 +480,14 @@ function switchCalendarView(view) {
 }
 
 // Year View Rendering
-function renderYearView() {
+async function renderYearView() {
     const yearGrid = document.getElementById('yearGrid');
     yearGrid.innerHTML = '';
     
     const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
         'July', 'August', 'September', 'October', 'November', 'December'];
     
-    const receipts = getReceiptsByProperty(appState.currentProperty);
+    const receipts = await getReceiptsByProperty(appState.currentProperty);
     
     for (let month = 0; month < 12; month++) {
         const monthCard = document.createElement('div');
@@ -563,7 +563,7 @@ function renderYearView() {
 }
 
 // Calendar Rendering
-function renderCalendar() {
+async function renderCalendar() {
     const grid = document.getElementById('calendarGrid');
     grid.innerHTML = '';
 
@@ -597,7 +597,7 @@ function renderCalendar() {
 
     // Current month days
     const today = new Date();
-    const receipts = getReceiptsByProperty(appState.currentProperty);
+    const receipts = await getReceiptsByProperty(appState.currentProperty);
 
     for (let i = 1; i <= daysInMonth; i++) {
         const day = document.createElement('div');
@@ -640,8 +640,8 @@ function renderCalendar() {
 }
 
 // Categories Rendering
-function renderCategories() {
-    const receipts = getReceiptsByProperty(appState.currentProperty);
+async function renderCategories() {
+    const receipts = await getReceiptsByProperty(appState.currentProperty);
     const categoryCounts = {};
 
     // Count receipts per category
@@ -659,10 +659,11 @@ function renderCategories() {
 }
 
 // Summary Rendering
-function renderSummary() {
+async function renderSummary() {
     document.getElementById('currentYear').textContent = appState.summaryYear;
     
-    const receipts = getReceiptsByProperty(appState.currentProperty).filter(r => {
+    const allReceipts = await getReceiptsByProperty(appState.currentProperty);
+    const receipts = allReceipts.filter(r => {
         return new Date(r.date).getFullYear() === appState.summaryYear;
     });
 
