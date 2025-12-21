@@ -359,17 +359,9 @@ function handleLogin() {
         // Clear lockout on successful login
         clearLockout();
         
-        // Add fade-out animation to login screen
-        const loginScreen = document.getElementById('loginScreen');
-        loginScreen.classList.add('fade-out');
-        
-        // Wait for animation to complete before switching screens
-        setTimeout(() => {
-            showScreen('homeScreen');
-            updatePropertyCounts();
-            loginScreen.classList.remove('fade-out');
-            loginScreen.classList.add('hidden');
-        }, 500);
+        // Immediately switch to home screen
+        showScreen('homeScreen');
+        updatePropertyCounts();
     } else {
         const remainingAttempts = MAX_LOGIN_ATTEMPTS - appState.loginAttempts - 1;
         if (remainingAttempts > 0) {

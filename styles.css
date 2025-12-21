@@ -605,8 +605,10 @@ body::before {
 .calendar-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 6px;
+    gap: 4px;
     margin-bottom: 100px;
+    padding: 0 8px;
+    max-width: 100%;
 }
 
 .calendar-day {
@@ -679,9 +681,12 @@ body::before {
 /* Year View */
 .year-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(3, auto);
+    gap: 12px;
     margin-bottom: 100px;
+    overflow-x: auto;
+    padding: 0 8px;
 }
 
 .year-month {
