@@ -933,7 +933,7 @@ async function saveReceipt() {
         await updatePropertyDisplay();
     } catch (error) {
         console.error('Error saving receipt:', error);
-        alert('Error saving receipt. Please try again.');
+        alert(`Error saving receipt: ${error.message || 'Please try again.'}\n\nCheck console for details.`);
     }
 }
 
