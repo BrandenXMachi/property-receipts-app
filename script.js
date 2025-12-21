@@ -18,7 +18,12 @@ const PASSWORD = 'Brandrew';
 const MAX_LOGIN_ATTEMPTS = 7;
 const LOCKOUT_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 
-// IndexedDB Setup
+// Supabase Setup
+const SUPABASE_URL = 'https://msquxcujurktuhtvfcju.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1zcXV4Y3VqdXJrdHVodHZmY2p1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYyODY3NTAsImV4cCI6MjA4MTg2Mjc1MH0.QLACY3YIgsl67RLIgZeElB8In7zBTpKrGFk_W_nMWUA';
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// IndexedDB Setup (keeping for local migration)
 const DB_NAME = 'PropertyReceiptsDB';
 const DB_VERSION = 1;
 const RECEIPTS_STORE = 'receipts';
@@ -921,8 +926,8 @@ async function saveReceipt() {
     receipt.note = document.getElementById('receiptNote').value;
 
     try {
-        // Save to IndexedDB
-        await saveReceiptToDB(receipt);
+        // Save to Supabase cloud storage
+        await saveReceiptToSupabase(receipt);
         closeModal();
         await updatePropertyDisplay();
     } catch (error) {
@@ -936,7 +941,7 @@ async function deleteReceipt() {
 
     if (confirm('Are you sure you want to delete this receipt?')) {
         try {
-            await deleteReceiptFromDB(appState.currentReceipt.id);
+            await deleteReceiptFromSupabase(appState.currentReceipt.id);
             closeModal();
             
             // Refresh current view
@@ -1009,10 +1014,79 @@ async function toggleVoiceRecording() {
     }
 }
 
-// Data Management
+// Supabase Storage Helper Functions
+async function uploadImageToSupabase(imageData, receiptId) {
+    try {
+        // Convert base64 to blob
+        const response = await fetch(imageData);
+        const blob = await response.blob();
+        
+        const fileName = `${receiptId}.jpg`;
+        const { data, error } = await supabase.storage
+            .from('receipt-images')
+            .upload(fileName, blob, {
+                contentType: 'image/jpeg',
+                upsert: true
+            });
+        
+        if (error) throw error;
+        
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+            .from('receipt-images')
+            .getPublicUrl(fileName);
+        
+        return publicUrl;
+    } catch (error) {
+        console.error('Error uploading image:', error);
+        throw error;
+    }
+}
+
+async function uploadVoiceNoteToSupabase(voiceData, receiptId) {
+    try {
+        // Convert base64 to blob
+        const response = await fetch(voiceData);
+        const blob = await response.blob();
+        
+        const fileName = `${receiptId}.webm`;
+        const { data, error } = await supabase.storage
+            .from('voice-notes')
+            .upload(fileName, blob, {
+                contentType: 'audio/webm',
+                upsert: true
+            });
+        
+        if (error) throw error;
+        
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+            .from('voice-notes')
+            .getPublicUrl(fileName);
+        
+        return publicUrl;
+    } catch (error) {
+        console.error('Error uploading voice note:', error);
+        throw error;
+    }
+}
+
+// Data Management - Supabase Functions
 async function getAllReceipts() {
     try {
-        return await getAllReceiptsFromDB();
+        const { data, error } = await supabase
+            .from('receipts')
+            .select('*')
+            .order('date', { ascending: false });
+        
+        if (error) throw error;
+        
+        // Convert URLs back to data format for compatibility
+        return data.map(receipt => ({
+            ...receipt,
+            image: receipt.image_url,
+            voiceNote: receipt.voice_note_url
+        }));
     } catch (error) {
         console.error('Error getting receipts:', error);
         return [];
@@ -1020,8 +1094,83 @@ async function getAllReceipts() {
 }
 
 async function getReceiptsByProperty(property) {
-    const allReceipts = await getAllReceipts();
-    return allReceipts.filter(r => r.property === property);
+    try {
+        const { data, error } = await supabase
+            .from('receipts')
+            .select('*')
+            .eq('property', property)
+            .order('date', { ascending: false });
+        
+        if (error) throw error;
+        
+        return data.map(receipt => ({
+            ...receipt,
+            image: receipt.image_url,
+            voiceNote: receipt.voice_note_url
+        }));
+    } catch (error) {
+        console.error('Error getting receipts:', error);
+        return [];
+    }
+}
+
+async function saveReceiptToSupabase(receipt) {
+    try {
+        // Upload image to storage
+        const imageUrl = await uploadImageToSupabase(receipt.image, receipt.id);
+        
+        // Upload voice note if exists
+        let voiceNoteUrl = null;
+        if (receipt.voiceNote) {
+            voiceNoteUrl = await uploadVoiceNoteToSupabase(receipt.voiceNote, receipt.id);
+        }
+        
+        // Save receipt metadata to database
+        const { data, error } = await supabase
+            .from('receipts')
+            .upsert({
+                id: receipt.id,
+                property: receipt.property,
+                date: receipt.date,
+                amount: receipt.amount || null,
+                category: receipt.category,
+                note: receipt.note || '',
+                image_url: imageUrl,
+                voice_note_url: voiceNoteUrl,
+                updated_at: new Date().toISOString()
+            });
+        
+        if (error) throw error;
+        return data;
+    } catch (error) {
+        console.error('Error saving receipt to Supabase:', error);
+        throw error;
+    }
+}
+
+async function deleteReceiptFromSupabase(receiptId) {
+    try {
+        // Delete image from storage
+        await supabase.storage
+            .from('receipt-images')
+            .remove([`${receiptId}.jpg`]);
+        
+        // Delete voice note from storage
+        await supabase.storage
+            .from('voice-notes')
+            .remove([`${receiptId}.webm`]);
+        
+        // Delete from database
+        const { error } = await supabase
+            .from('receipts')
+            .delete()
+            .eq('id', receiptId);
+        
+        if (error) throw error;
+    } catch (error) {
+        console.error('Error deleting receipt from Supabase:', error);
+        throw error;
+    }
 }
 
 // Export Functions
