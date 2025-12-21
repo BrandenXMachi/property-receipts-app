@@ -18,12 +18,105 @@ const PASSWORD = 'Brandrew';
 const MAX_LOGIN_ATTEMPTS = 7;
 const LOCKOUT_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 
+// IndexedDB Setup
+const DB_NAME = 'PropertyReceiptsDB';
+const DB_VERSION = 1;
+const RECEIPTS_STORE = 'receipts';
+let db = null;
+
+// Initialize IndexedDB
+function initDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+            db = request.result;
+            resolve(db);
+        };
+        
+        request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            
+            // Create receipts object store if it doesn't exist
+            if (!db.objectStoreNames.contains(RECEIPTS_STORE)) {
+                const objectStore = db.createObjectStore(RECEIPTS_STORE, { keyPath: 'id' });
+                objectStore.createIndex('property', 'property', { unique: false });
+                objectStore.createIndex('date', 'date', { unique: false });
+            }
+        };
+    });
+}
+
+// IndexedDB Helper Functions
+async function saveReceiptToDB(receipt) {
+    if (!db) await initDB();
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([RECEIPTS_STORE], 'readwrite');
+        const store = transaction.objectStore(RECEIPTS_STORE);
+        const request = store.put(receipt);
+        
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+async function getAllReceiptsFromDB() {
+    if (!db) await initDB();
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([RECEIPTS_STORE], 'readonly');
+        const store = transaction.objectStore(RECEIPTS_STORE);
+        const request = store.getAll();
+        
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+async function deleteReceiptFromDB(id) {
+    if (!db) await initDB();
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([RECEIPTS_STORE], 'readwrite');
+        const store = transaction.objectStore(RECEIPTS_STORE);
+        const request = store.delete(id);
+        
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+    });
+}
+
+// Migrate data from localStorage to IndexedDB
+async function migrateFromLocalStorage() {
+    const oldData = localStorage.getItem('receipts');
+    if (oldData) {
+        try {
+            const receipts = JSON.parse(oldData);
+            for (const receipt of receipts) {
+                await saveReceiptToDB(receipt);
+            }
+            // Clear localStorage after successful migration
+            localStorage.removeItem('receipts');
+            console.log('Successfully migrated', receipts.length, 'receipts to IndexedDB');
+        } catch (error) {
+            console.error('Error migrating data:', error);
+        }
+    }
+}
+
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
     initializeApp();
 });
 
-function initializeApp() {
+async function initializeApp() {
+    // Initialize IndexedDB first
+    try {
+        await initDB();
+        await migrateFromLocalStorage();
+    } catch (error) {
+        console.error('Error initializing database:', error);
+    }
+    
     // Check lockout status
     checkLockoutStatus();
     
@@ -32,7 +125,7 @@ function initializeApp() {
     if (isAuth === 'true') {
         appState.isAuthenticated = true;
         showScreen('homeScreen');
-        updatePropertyCounts();
+        await updatePropertyCounts();
     } else {
         showScreen('loginScreen');
     }
@@ -311,14 +404,14 @@ function openProperty(property) {
     switchTab('calendar');
 }
 
-function updatePropertyCounts() {
+async function updatePropertyCounts() {
     const properties = ['apartment', 'triplex', 'house'];
-    properties.forEach(property => {
-        const receipts = getReceiptsByProperty(property);
+    for (const property of properties) {
+        const receipts = await getReceiptsByProperty(property);
         const card = document.querySelector(`[data-property="${property}"]`);
         const countEl = card.querySelector('.receipt-count');
         countEl.textContent = `${receipts.length} receipt${receipts.length !== 1 ? 's' : ''}`;
-    });
+    }
 }
 
 // Tab Management
@@ -818,7 +911,7 @@ function closeModal() {
     }
 }
 
-function saveReceipt() {
+async function saveReceipt() {
     if (!appState.currentReceipt) return;
 
     const receipt = appState.currentReceipt;
@@ -827,48 +920,45 @@ function saveReceipt() {
     receipt.category = document.getElementById('receiptCategory').value;
     receipt.note = document.getElementById('receiptNote').value;
 
-    // Save to storage
-    const allReceipts = getAllReceipts();
-    const existingIndex = allReceipts.findIndex(r => r.id === receipt.id);
-    
-    if (existingIndex >= 0) {
-        allReceipts[existingIndex] = receipt;
-    } else {
-        allReceipts.push(receipt);
+    try {
+        // Save to IndexedDB
+        await saveReceiptToDB(receipt);
+        closeModal();
+        await updatePropertyDisplay();
+    } catch (error) {
+        console.error('Error saving receipt:', error);
+        alert('Error saving receipt. Please try again.');
     }
-
-    localStorage.setItem('receipts', JSON.stringify(allReceipts));
-
-    closeModal();
-    updatePropertyDisplay();
 }
 
-function deleteReceipt() {
+async function deleteReceipt() {
     if (!appState.currentReceipt) return;
 
     if (confirm('Are you sure you want to delete this receipt?')) {
-        const allReceipts = getAllReceipts();
-        const filtered = allReceipts.filter(r => r.id !== appState.currentReceipt.id);
-        localStorage.setItem('receipts', JSON.stringify(filtered));
-
-        closeModal();
-        
-        // Refresh current view
-        const currentScreen = document.querySelector('.screen.active').id;
-        if (currentScreen === 'galleryScreen') {
-            // Go back to property screen
-            showScreen('propertyScreen');
-            updatePropertyDisplay();
-        } else {
-            updatePropertyDisplay();
+        try {
+            await deleteReceiptFromDB(appState.currentReceipt.id);
+            closeModal();
+            
+            // Refresh current view
+            const currentScreen = document.querySelector('.screen.active').id;
+            if (currentScreen === 'galleryScreen') {
+                // Go back to property screen
+                showScreen('propertyScreen');
+                await updatePropertyDisplay();
+            } else {
+                await updatePropertyDisplay();
+            }
+        } catch (error) {
+            console.error('Error deleting receipt:', error);
+            alert('Error deleting receipt. Please try again.');
         }
     }
 }
 
-function updatePropertyDisplay() {
+async function updatePropertyDisplay() {
     const activeTab = document.querySelector('.tab-button.active');
     if (activeTab) {
-        switchTab(activeTab.dataset.tab);
+        await switchTab(activeTab.dataset.tab);
     }
 }
 
@@ -920,13 +1010,18 @@ async function toggleVoiceRecording() {
 }
 
 // Data Management
-function getAllReceipts() {
-    const data = localStorage.getItem('receipts');
-    return data ? JSON.parse(data) : [];
+async function getAllReceipts() {
+    try {
+        return await getAllReceiptsFromDB();
+    } catch (error) {
+        console.error('Error getting receipts:', error);
+        return [];
+    }
 }
 
-function getReceiptsByProperty(property) {
-    return getAllReceipts().filter(r => r.property === property);
+async function getReceiptsByProperty(property) {
+    const allReceipts = await getAllReceipts();
+    return allReceipts.filter(r => r.property === property);
 }
 
 // Export Functions
