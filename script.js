@@ -14,14 +14,14 @@ let appState = {
 };
 
 // Data Storage
-const PASSWORD = 'Brandrew';
+const PASSWORD = 'brandrew';
 const MAX_LOGIN_ATTEMPTS = 7;
 const LOCKOUT_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 // Supabase Setup
 const SUPABASE_URL = 'https://msquxcujurktuhtvfcju.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1zcXV4Y3VqdXJrdHVodHZmY2p1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYyODY3NTAsImV4cCI6MjA4MTg2Mjc1MH0.QLACY3YIgsl67RLIgZeElB8In7zBTpKrGFk_W_nMWUA';
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // IndexedDB Setup (keeping for local migration)
 const DB_NAME = 'PropertyReceiptsDB';
@@ -1022,7 +1022,7 @@ async function uploadImageToSupabase(imageData, receiptId) {
         const blob = await response.blob();
         
         const fileName = `${receiptId}.jpg`;
-        const { data, error } = await supabase.storage
+        const { data, error } = await supabaseClient.storage
             .from('receipt-images')
             .upload(fileName, blob, {
                 contentType: 'image/jpeg',
@@ -1032,7 +1032,7 @@ async function uploadImageToSupabase(imageData, receiptId) {
         if (error) throw error;
         
         // Get public URL
-        const { data: { publicUrl } } = supabase.storage
+        const { data: { publicUrl } } = supabaseClient.storage
             .from('receipt-images')
             .getPublicUrl(fileName);
         
@@ -1050,7 +1050,7 @@ async function uploadVoiceNoteToSupabase(voiceData, receiptId) {
         const blob = await response.blob();
         
         const fileName = `${receiptId}.webm`;
-        const { data, error } = await supabase.storage
+        const { data, error } = await supabaseClient.storage
             .from('voice-notes')
             .upload(fileName, blob, {
                 contentType: 'audio/webm',
@@ -1060,7 +1060,7 @@ async function uploadVoiceNoteToSupabase(voiceData, receiptId) {
         if (error) throw error;
         
         // Get public URL
-        const { data: { publicUrl } } = supabase.storage
+        const { data: { publicUrl } } = supabaseClient.storage
             .from('voice-notes')
             .getPublicUrl(fileName);
         
@@ -1074,7 +1074,7 @@ async function uploadVoiceNoteToSupabase(voiceData, receiptId) {
 // Data Management - Supabase Functions
 async function getAllReceipts() {
     try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('receipts')
             .select('*')
             .order('date', { ascending: false });
@@ -1095,7 +1095,7 @@ async function getAllReceipts() {
 
 async function getReceiptsByProperty(property) {
     try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('receipts')
             .select('*')
             .eq('property', property)
@@ -1126,7 +1126,7 @@ async function saveReceiptToSupabase(receipt) {
         }
         
         // Save receipt metadata to database
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('receipts')
             .upsert({
                 id: receipt.id,
@@ -1151,17 +1151,17 @@ async function saveReceiptToSupabase(receipt) {
 async function deleteReceiptFromSupabase(receiptId) {
     try {
         // Delete image from storage
-        await supabase.storage
+        await supabaseClient.storage
             .from('receipt-images')
             .remove([`${receiptId}.jpg`]);
         
         // Delete voice note from storage
-        await supabase.storage
+        await supabaseClient.storage
             .from('voice-notes')
             .remove([`${receiptId}.webm`]);
         
         // Delete from database
-        const { error } = await supabase
+        const { error } = await supabaseClient
             .from('receipts')
             .delete()
             .eq('id', receiptId);
