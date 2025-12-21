@@ -456,28 +456,28 @@ body {
 
 .calendar-view-toggle {
     display: flex;
-    gap: 4px;
-    background: var(--background);
-    border-radius: 8px;
-    padding: 4px;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 16px;
 }
 
 .view-toggle-btn {
-    background: transparent;
-    border: none;
-    padding: 8px 12px;
-    border-radius: 6px;
+    background: white;
+    border: 2px solid var(--primary);
+    padding: 10px 24px;
+    border-radius: 10px;
     cursor: pointer;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text-secondary);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--primary);
     transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .view-toggle-btn.active {
-    background: white;
-    color: var(--primary);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    background: var(--primary);
+    color: white;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
 .calendar-grid {
@@ -512,7 +512,7 @@ body {
 .calendar-day.header {
     background: transparent;
     border: none;
-    color: var(--text-secondary);
+    color: #000000;
     font-size: 12px;
     font-weight: 600;
     cursor: default;

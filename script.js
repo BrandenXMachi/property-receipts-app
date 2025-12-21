@@ -102,6 +102,19 @@ function setupEventListeners() {
         switchCalendarView('year');
     });
 
+    // Year navigation in calendar view
+    document.getElementById('prevYearCalendar').addEventListener('click', () => {
+        appState.currentYear--;
+        document.getElementById('currentYearCalendar').textContent = appState.currentYear;
+        renderYearView();
+    });
+
+    document.getElementById('nextYearCalendar').addEventListener('click', () => {
+        appState.currentYear++;
+        document.getElementById('currentYearCalendar').textContent = appState.currentYear;
+        renderYearView();
+    });
+
     // Summary year navigation
     document.getElementById('prevYear').addEventListener('click', () => {
         appState.summaryYear--;
@@ -356,11 +369,14 @@ function switchCalendarView(view) {
         document.getElementById('calendarGrid').style.display = 'grid';
         document.getElementById('yearGrid').style.display = 'none';
         document.querySelector('.calendar-header').style.display = 'flex';
+        document.getElementById('yearHeader').style.display = 'none';
         renderCalendar();
     } else {
         document.getElementById('calendarGrid').style.display = 'none';
         document.getElementById('yearGrid').style.display = 'grid';
         document.querySelector('.calendar-header').style.display = 'none';
+        document.getElementById('yearHeader').style.display = 'flex';
+        document.getElementById('currentYearCalendar').textContent = appState.currentYear;
         renderYearView();
     }
 }
