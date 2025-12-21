@@ -73,20 +73,11 @@ body::before {
 .screen {
     display: none;
     min-height: 100vh;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100%;
-    height: 100%;
-    z-index: -1;
+    position: relative;
 }
 
 .screen.active {
     display: block;
-    position: relative;
-    z-index: 1;
     animation: screenGlitch 0.3s ease-out;
 }
 
