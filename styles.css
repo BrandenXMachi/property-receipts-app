@@ -172,6 +172,15 @@ body::before {
     z-index: 1;
 }
 
+/* Position Begin button to overlay in same position as Login button */
+#beginButton {
+    position: absolute;
+    top: 74px; /* Position where the login button is (after password input + gap) */
+    left: 0;
+    right: 0;
+    width: 100%;
+}
+
 .login-form input {
     padding: 18px 24px;
     font-size: 16px;
