@@ -145,6 +145,12 @@ function setupEventListeners() {
     document.getElementById('passwordInput').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') handleLogin();
     });
+    
+    // Begin button - navigate to home screen
+    document.getElementById('beginButton').addEventListener('click', () => {
+        showScreen('homeScreen');
+        updatePropertyCounts();
+    });
 
     // Property cards
     document.querySelectorAll('.property-card').forEach(card => {
@@ -350,6 +356,9 @@ function handleLogin() {
 
     const password = document.getElementById('passwordInput').value;
     const errorEl = document.getElementById('loginError');
+    const passwordInput = document.getElementById('passwordInput');
+    const loginButton = document.getElementById('loginButton');
+    const beginButton = document.getElementById('beginButton');
 
     if (password === PASSWORD) {
         appState.isAuthenticated = true;
@@ -359,9 +368,19 @@ function handleLogin() {
         // Clear lockout on successful login
         clearLockout();
         
-        // Immediately switch to home screen
-        showScreen('homeScreen');
-        updatePropertyCounts();
+        // Hide password input and login button with fade-out animation
+        passwordInput.classList.add('fade-out');
+        loginButton.classList.add('fade-out');
+        
+        // After fade-out completes, hide them and show Begin button
+        setTimeout(() => {
+            passwordInput.classList.add('hidden');
+            loginButton.classList.add('hidden');
+            
+            // Show Begin button with fade-in animation
+            beginButton.classList.remove('hidden');
+            beginButton.classList.add('fade-in');
+        }, 400); // Match the fade-out animation duration
     } else {
         const remainingAttempts = MAX_LOGIN_ATTEMPTS - appState.loginAttempts - 1;
         if (remainingAttempts > 0) {
