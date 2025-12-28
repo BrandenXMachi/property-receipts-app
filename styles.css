@@ -1006,6 +1006,20 @@ body::before {
     text-shadow: 0 0 10px var(--cyber-cyan);
 }
 
+.receipt-thumbnail .photo-count-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: var(--cyber-purple);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 700;
+    box-shadow: 0 0 15px var(--cyber-purple);
+    z-index: 5;
+}
+
 /* ==================================
    MODAL
    ================================== */

@@ -858,7 +858,16 @@ async function showReceiptGallery(dateStr) {
         const thumbnail = document.createElement('div');
         thumbnail.className = 'receipt-thumbnail';
         
-        let html = `<img src="${receipt.image}" alt="Receipt">`;
+        // Get first image (backward compatibility)
+        const firstImage = receipt.images ? receipt.images[0] : (receipt.image || '');
+        const imageCount = receipt.images ? receipt.images.length : (receipt.image ? 1 : 0);
+        
+        let html = `<img src="${firstImage}" alt="Receipt">`;
+        
+        // Show photo count badge if multiple photos
+        if (imageCount > 1) {
+            html += `<div class="photo-count-badge">📸 ${imageCount}</div>`;
+        }
         
         if (receipt.voiceNote) {
             html += `
@@ -1049,13 +1058,13 @@ async function toggleVoiceRecording() {
 }
 
 // Supabase Storage Helper Functions
-async function uploadImageToSupabase(imageData, receiptId) {
+async function uploadImageToSupabase(imageData, receiptId, index = 0) {
     try {
         // Convert base64 to blob
         const response = await fetch(imageData);
         const blob = await response.blob();
         
-        const fileName = `${receiptId}.jpg`;
+        const fileName = `${receiptId}_${index}.jpg`;
         const { data, error } = await supabaseClient.storage
             .from('receipt-images')
             .upload(fileName, blob, {
@@ -1116,11 +1125,24 @@ async function getAllReceipts() {
         if (error) throw error;
         
         // Convert URLs back to data format for compatibility
-        return data.map(receipt => ({
-            ...receipt,
-            image: receipt.image_url,
-            voiceNote: receipt.voice_note_url
-        }));
+        return data.map(receipt => {
+            let images;
+            try {
+                // Try to parse as JSON array
+                images = JSON.parse(receipt.image_url);
+                if (!Array.isArray(images)) images = [receipt.image_url];
+            } catch {
+                // Fallback for old single-image format
+                images = [receipt.image_url];
+            }
+            
+            return {
+                ...receipt,
+                images: images,
+                image: images[0], // Backward compatibility
+                voiceNote: receipt.voice_note_url
+            };
+        });
     } catch (error) {
         console.error('Error getting receipts:', error);
         return [];
@@ -1137,11 +1159,24 @@ async function getReceiptsByProperty(property) {
         
         if (error) throw error;
         
-        return data.map(receipt => ({
-            ...receipt,
-            image: receipt.image_url,
-            voiceNote: receipt.voice_note_url
-        }));
+        return data.map(receipt => {
+            let images;
+            try {
+                // Try to parse as JSON array
+                images = JSON.parse(receipt.image_url);
+                if (!Array.isArray(images)) images = [receipt.image_url];
+            } catch {
+                // Fallback for old single-image format
+                images = [receipt.image_url];
+            }
+            
+            return {
+                ...receipt,
+                images: images,
+                image: images[0], // Backward compatibility
+                voiceNote: receipt.voice_note_url
+            };
+        });
     } catch (error) {
         console.error('Error getting receipts:', error);
         return [];
@@ -1150,8 +1185,14 @@ async function getReceiptsByProperty(property) {
 
 async function saveReceiptToSupabase(receipt) {
     try {
-        // Upload image to storage
-        const imageUrl = await uploadImageToSupabase(receipt.image, receipt.id);
+        // Upload all images to storage
+        const imageUrls = [];
+        const images = receipt.images || (receipt.image ? [receipt.image] : []);
+        
+        for (let i = 0; i < images.length; i++) {
+            const imageUrl = await uploadImageToSupabase(images[i], receipt.id, i);
+            imageUrls.push(imageUrl);
+        }
         
         // Upload voice note if exists
         let voiceNoteUrl = null;
@@ -1159,7 +1200,7 @@ async function saveReceiptToSupabase(receipt) {
             voiceNoteUrl = await uploadVoiceNoteToSupabase(receipt.voiceNote, receipt.id);
         }
         
-        // Save receipt metadata to database
+        // Save receipt metadata to database (store image URLs as JSON)
         const { data, error } = await supabaseClient
             .from('receipts')
             .upsert({
@@ -1169,7 +1210,7 @@ async function saveReceiptToSupabase(receipt) {
                 amount: receipt.amount || null,
                 category: receipt.category,
                 note: receipt.note || '',
-                image_url: imageUrl,
+                image_url: JSON.stringify(imageUrls), // Store as JSON array
                 voice_note_url: voiceNoteUrl,
                 updated_at: new Date().toISOString()
             });
