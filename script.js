@@ -6,12 +6,16 @@ let appState = {
     currentYear: new Date().getFullYear(),
     summaryYear: new Date().getFullYear(),
     currentReceipt: null,
+    currentImageIndex: 0,
     mediaRecorder: null,
     audioChunks: [],
     calendarView: 'month', // 'month' or 'year'
     loginAttempts: 0,
     lockoutUntil: null
 };
+
+// Constants
+const MAX_PHOTOS_PER_RECEIPT = 7;
 
 // Data Storage
 const PASSWORD = 'brandrew';
@@ -258,6 +262,13 @@ function setupEventListeners() {
     // Export
     document.getElementById('exportPDF').addEventListener('click', exportSummaryPDF);
     document.getElementById('exportReceipts').addEventListener('click', exportAllReceipts);
+
+    // Image carousel navigation
+    document.getElementById('prevImage').addEventListener('click', showPreviousImage);
+    document.getElementById('nextImage').addEventListener('click', showNextImage);
+    
+    // Add another photo button
+    document.getElementById('addAnotherPhoto').addEventListener('click', addAnotherPhoto);
 }
 
 // Lockout Management
@@ -796,11 +807,11 @@ function handleImageCapture(event) {
     // Compress image before storing
     compressImage(file, 1200, 0.7)
         .then(compressedImage => {
-            // Create new receipt with compressed image
+            // Create new receipt with compressed image array
             const receipt = {
                 id: Date.now().toString(),
                 property: appState.currentProperty,
-                image: compressedImage,
+                images: [compressedImage], // Array of images
                 date: new Date().toISOString().split('T')[0],
                 amount: '',
                 category: 'other',
@@ -809,6 +820,7 @@ function handleImageCapture(event) {
             };
 
             appState.currentReceipt = receipt;
+            appState.currentImageIndex = 0;
             showReceiptModal(receipt);
         })
         .catch(error => {
@@ -899,7 +911,14 @@ async function showCategoryReceipts(category) {
 
 // Receipt Modal
 function showReceiptModal(receipt) {
-    document.getElementById('receiptImage').src = receipt.image;
+    // Ensure receipt has images array (backward compatibility)
+    if (!receipt.images && receipt.image) {
+        receipt.images = [receipt.image];
+    }
+    
+    appState.currentImageIndex = 0;
+    
+    // Set form values
     document.getElementById('receiptDate').value = receipt.date;
     document.getElementById('receiptAmount').value = receipt.amount;
     document.getElementById('receiptCategory').value = receipt.category || 'other';
@@ -914,6 +933,9 @@ function showReceiptModal(receipt) {
         voicePlayback.style.display = 'none';
         voicePlayback.src = '';
     }
+
+    // Update image display
+    updateImageDisplay();
 
     document.getElementById('receiptModal').classList.add('active');
 }
@@ -1182,6 +1204,171 @@ async function deleteReceiptFromSupabase(receiptId) {
     } catch (error) {
         console.error('Error deleting receipt from Supabase:', error);
         throw error;
+    }
+}
+
+// Multi-Photo Functions
+function showPreviousImage() {
+    if (!appState.currentReceipt || !appState.currentReceipt.images) return;
+    
+    appState.currentImageIndex--;
+    if (appState.currentImageIndex < 0) {
+        appState.currentImageIndex = appState.currentReceipt.images.length - 1;
+    }
+    updateImageDisplay();
+}
+
+function showNextImage() {
+    if (!appState.currentReceipt || !appState.currentReceipt.images) return;
+    
+    appState.currentImageIndex++;
+    if (appState.currentImageIndex >= appState.currentReceipt.images.length) {
+        appState.currentImageIndex = 0;
+    }
+    updateImageDisplay();
+}
+
+function updateImageDisplay() {
+    const receipt = appState.currentReceipt;
+    if (!receipt || !receipt.images || receipt.images.length === 0) return;
+    
+    const images = receipt.images;
+    const index = appState.currentImageIndex;
+    
+    // Update main image
+    document.getElementById('receiptImage').src = images[index];
+    
+    // Update counter
+    const counter = document.getElementById('imageCounter');
+    if (images.length > 1) {
+        counter.textContent = `${index + 1} / ${images.length}`;
+        counter.style.display = 'block';
+        
+        // Show navigation buttons
+        document.getElementById('prevImage').style.display = 'flex';
+        document.getElementById('nextImage').style.display = 'flex';
+    } else {
+        counter.style.display = 'none';
+        document.getElementById('prevImage').style.display = 'none';
+        document.getElementById('nextImage').style.display = 'none';
+    }
+    
+    // Update thumbnail strip
+    updateThumbnailStrip();
+    
+    // Update "Add Another Photo" button
+    updateAddPhotoButton();
+}
+
+function updateThumbnailStrip() {
+    const receipt = appState.currentReceipt;
+    if (!receipt || !receipt.images || receipt.images.length <= 1) {
+        document.getElementById('thumbnailStrip').style.display = 'none';
+        return;
+    }
+    
+    const strip = document.getElementById('thumbnailStrip');
+    strip.style.display = 'flex';
+    strip.innerHTML = '';
+    
+    receipt.images.forEach((image, index) => {
+        const thumb = document.createElement('div');
+        thumb.className = 'thumbnail-item';
+        if (index === appState.currentImageIndex) {
+            thumb.classList.add('active');
+        }
+        
+        const img = document.createElement('img');
+        img.src = image;
+        thumb.appendChild(img);
+        
+        // Delete button
+        if (receipt.images.length > 1) {
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'thumbnail-delete';
+            deleteBtn.textContent = '×';
+            deleteBtn.onclick = (e) => {
+                e.stopPropagation();
+                deleteImage(index);
+            };
+            thumb.appendChild(deleteBtn);
+        }
+        
+        // Click to select
+        thumb.onclick = () => {
+            appState.currentImageIndex = index;
+            updateImageDisplay();
+        };
+        
+        strip.appendChild(thumb);
+    });
+}
+
+function updateAddPhotoButton() {
+    const receipt = appState.currentReceipt;
+    if (!receipt || !receipt.images) return;
+    
+    const button = document.getElementById('addAnotherPhoto');
+    const text = document.getElementById('addPhotoText');
+    
+    if (receipt.images.length < MAX_PHOTOS_PER_RECEIPT) {
+        button.style.display = 'flex';
+        text.textContent = `Add Another Photo (${receipt.images.length}/${MAX_PHOTOS_PER_RECEIPT})`;
+    } else {
+        button.style.display = 'none';
+    }
+}
+
+function addAnotherPhoto() {
+    if (!appState.currentReceipt || !appState.currentReceipt.images) return;
+    if (appState.currentReceipt.images.length >= MAX_PHOTOS_PER_RECEIPT) {
+        alert(`Maximum ${MAX_PHOTOS_PER_RECEIPT} photos per receipt.`);
+        return;
+    }
+    
+    // Trigger camera input
+    const input = document.getElementById('cameraInput');
+    input.onchange = function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        compressImage(file, 1200, 0.7)
+            .then(compressedImage => {
+                appState.currentReceipt.images.push(compressedImage);
+                appState.currentImageIndex = appState.currentReceipt.images.length - 1;
+                updateImageDisplay();
+            })
+            .catch(error => {
+                console.error('Error compressing image:', error);
+                alert('Error processing image. Please try again.');
+            });
+        
+        // Reset input
+        e.target.value = '';
+        
+        // Restore original onchange handler
+        input.onchange = handleImageCapture;
+    };
+    
+    input.click();
+}
+
+function deleteImage(index) {
+    if (!appState.currentReceipt || !appState.currentReceipt.images) return;
+    if (appState.currentReceipt.images.length <= 1) {
+        alert('Cannot delete the only image. Delete the entire receipt instead.');
+        return;
+    }
+    
+    if (confirm('Delete this image?')) {
+        appState.currentReceipt.images.splice(index, 1);
+        
+        // Adjust current index if needed
+        if (appState.currentImageIndex >= appState.currentReceipt.images.length) {
+            appState.currentImageIndex = appState.currentReceipt.images.length - 1;
+        }
+        
+        updateImageDisplay();
     }
 }
 
