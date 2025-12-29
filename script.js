@@ -1427,7 +1427,7 @@ function updateAddPhotoButton() {
     
     if (receipt.images.length < MAX_PHOTOS_PER_RECEIPT) {
         button.style.display = 'flex';
-        text.textContent = `Add Another Photo (${receipt.images.length}/${MAX_PHOTOS_PER_RECEIPT})`;
+        text.textContent = 'Add Another Photo';
     } else {
         button.style.display = 'none';
     }
