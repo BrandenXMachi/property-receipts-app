@@ -270,6 +270,26 @@ function setupEventListeners() {
     
     // Add another photo button
     document.getElementById('addAnotherPhoto').addEventListener('click', addAnotherPhoto);
+    
+    // Photo source modal
+    document.getElementById('useCameraBtn').addEventListener('click', () => {
+        closePhotoSourceModal();
+        document.getElementById('cameraInput').click();
+    });
+    
+    document.getElementById('uploadFileBtn').addEventListener('click', () => {
+        closePhotoSourceModal();
+        document.getElementById('fileInput').click();
+    });
+    
+    document.getElementById('cancelPhotoSourceBtn').addEventListener('click', closePhotoSourceModal);
+    
+    document.getElementById('photoSourceModal').addEventListener('click', (e) => {
+        if (e.target.id === 'photoSourceModal') closePhotoSourceModal();
+    });
+    
+    // Gallery + button
+    document.getElementById('addReceiptToDateButton').addEventListener('click', addReceiptToCurrentDate);
 }
 
 // Lockout Management
@@ -761,13 +781,15 @@ async function renderSummary() {
 }
 
 // Camera and Image Handling
+let currentGalleryDate = null; // Track the current date when in gallery view
+
 function openCamera() {
-    // Show choice dialog for camera or file upload
-    if (confirm('Use Camera to take a photo?\n\nClick OK for Camera\nClick Cancel to upload an existing image')) {
-        document.getElementById('cameraInput').click();
-    } else {
-        document.getElementById('fileInput').click();
-    }
+    // Show photo source choice modal
+    document.getElementById('photoSourceModal').classList.add('active');
+}
+
+function closePhotoSourceModal() {
+    document.getElementById('photoSourceModal').classList.remove('active');
 }
 
 // Compress image to reduce storage size
@@ -842,6 +864,9 @@ function handleImageCapture(event) {
 async function showReceiptGallery(dateStr) {
     const allReceipts = await getReceiptsByProperty(appState.currentProperty);
     const receipts = allReceipts.filter(r => r.date === dateStr);
+    
+    // Track the current date for adding new receipts
+    currentGalleryDate = dateStr;
 
     // Fix timezone issue by parsing date components directly
     const [year, month, day] = dateStr.split('-').map(Number);
@@ -1495,4 +1520,63 @@ function downloadFile(content, filename, type) {
     link.download = filename;
     link.click();
     URL.revokeObjectURL(url);
+}
+
+// Add receipt to current gallery date
+function addReceiptToCurrentDate() {
+    if (!currentGalleryDate) {
+        alert('No date selected');
+        return;
+    }
+    
+    // Temporarily override handleImageCapture to set the date
+    const originalHandler = window.handleImageCaptureOriginal || handleImageCapture;
+    
+    // Create a wrapper that sets the date
+    const tempHandler = function(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        compressImage(file, 1200, 0.7)
+            .then(compressedImage => {
+                // Create new receipt with the gallery date
+                const receipt = {
+                    id: Date.now().toString(),
+                    property: appState.currentProperty,
+                    images: [compressedImage],
+                    date: currentGalleryDate, // Use the current gallery date
+                    amount: '',
+                    category: 'other',
+                    note: '',
+                    voiceNote: null
+                };
+
+                appState.currentReceipt = receipt;
+                appState.currentImageIndex = 0;
+                showReceiptModal(receipt);
+            })
+            .catch(error => {
+                console.error('Error compressing image:', error);
+                alert('Error processing image. Please try again.');
+            });
+
+        // Reset input
+        event.target.value = '';
+        
+        // Restore original handlers
+        document.getElementById('cameraInput').onchange = originalHandler;
+        document.getElementById('fileInput').onchange = originalHandler;
+    };
+    
+    // Store original if not already stored
+    if (!window.handleImageCaptureOriginal) {
+        window.handleImageCaptureOriginal = handleImageCapture;
+    }
+    
+    // Set temporary handlers
+    document.getElementById('cameraInput').onchange = tempHandler;
+    document.getElementById('fileInput').onchange = tempHandler;
+    
+    // Show photo source modal
+    openCamera();
 }
