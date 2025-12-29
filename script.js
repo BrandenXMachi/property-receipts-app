@@ -11,7 +11,8 @@ let appState = {
     audioChunks: [],
     calendarView: 'month', // 'month' or 'year'
     loginAttempts: 0,
-    lockoutUntil: null
+    lockoutUntil: null,
+    addingToExistingReceipt: null // Track when adding photos to existing receipt
 };
 
 // Constants
@@ -271,15 +272,23 @@ function setupEventListeners() {
     // Add another photo button
     document.getElementById('addAnotherPhoto').addEventListener('click', addAnotherPhoto);
     
-    // Photo source modal
+    // Photo source modal - context-aware handlers
     document.getElementById('useCameraBtn').addEventListener('click', () => {
         closePhotoSourceModal();
-        document.getElementById('cameraInput').click();
+        if (appState.addingToExistingReceipt) {
+            handleAddPhotoToReceipt(appState.addingToExistingReceipt, 'camera');
+        } else {
+            document.getElementById('cameraInput').click();
+        }
     });
     
     document.getElementById('uploadFileBtn').addEventListener('click', () => {
         closePhotoSourceModal();
-        document.getElementById('fileInput').click();
+        if (appState.addingToExistingReceipt) {
+            handleAddPhotoToReceipt(appState.addingToExistingReceipt, 'file');
+        } else {
+            document.getElementById('fileInput').click();
+        }
     });
     
     document.getElementById('cancelPhotoSourceBtn').addEventListener('click', closePhotoSourceModal);
@@ -790,6 +799,8 @@ function openCamera() {
 
 function closePhotoSourceModal() {
     document.getElementById('photoSourceModal').classList.remove('active');
+    // Clear the flag when modal closes
+    appState.addingToExistingReceipt = null;
 }
 
 // Compress image to reduce storage size
@@ -1440,34 +1451,11 @@ function addAnotherPhoto() {
         return;
     }
     
-    // Show photo source modal with custom handler for adding to current receipt
-    const photoSourceModal = document.getElementById('photoSourceModal');
+    // Set flag so photo source modal knows we're adding to existing receipt
+    appState.addingToExistingReceipt = appState.currentReceipt;
     
-    // Store the current receipt context
-    const currentReceiptToUpdate = appState.currentReceipt;
-    
-    // Override the modal button handlers temporarily
-    const useCameraBtn = document.getElementById('useCameraBtn');
-    const uploadFileBtn = document.getElementById('uploadFileBtn');
-    
-    // Remove existing listeners
-    const newUseCameraBtn = useCameraBtn.cloneNode(true);
-    const newUploadFileBtn = uploadFileBtn.cloneNode(true);
-    useCameraBtn.parentNode.replaceChild(newUseCameraBtn, useCameraBtn);
-    uploadFileBtn.parentNode.replaceChild(newUploadFileBtn, uploadFileBtn);
-    
-    // Add temporary handlers for adding photo to current receipt
-    newUseCameraBtn.addEventListener('click', () => {
-        closePhotoSourceModal();
-        handleAddPhotoToReceipt(currentReceiptToUpdate, 'camera');
-    });
-    
-    newUploadFileBtn.addEventListener('click', () => {
-        closePhotoSourceModal();
-        handleAddPhotoToReceipt(currentReceiptToUpdate, 'file');
-    });
-    
-    photoSourceModal.classList.add('active');
+    // Show photo source modal
+    document.getElementById('photoSourceModal').classList.add('active');
 }
 
 function handleAddPhotoToReceipt(receipt, source) {
