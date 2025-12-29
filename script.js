@@ -15,7 +15,7 @@ let appState = {
 };
 
 // Constants
-const MAX_PHOTOS_PER_RECEIPT = 7;
+const MAX_PHOTOS_PER_RECEIPT = 10;
 
 // Data Storage
 const PASSWORD = 'brandrew';
@@ -837,8 +837,12 @@ async function showReceiptGallery(dateStr) {
     const allReceipts = await getReceiptsByProperty(appState.currentProperty);
     const receipts = allReceipts.filter(r => r.date === dateStr);
 
+    // Fix timezone issue by parsing date components directly
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    
     document.getElementById('galleryDate').textContent = 
-        new Date(dateStr).toLocaleDateString('en-US', { 
+        date.toLocaleDateString('en-US', { 
             weekday: 'long', 
             year: 'numeric', 
             month: 'long', 
