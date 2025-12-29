@@ -237,6 +237,7 @@ function setupEventListeners() {
     // Add receipt
     document.getElementById('addReceiptButton').addEventListener('click', openCamera);
     document.getElementById('cameraInput').addEventListener('change', handleImageCapture);
+    document.getElementById('fileInput').addEventListener('change', handleImageCapture);
 
     // Modal
     document.getElementById('closeModal').addEventListener('click', closeModal);
@@ -761,7 +762,12 @@ async function renderSummary() {
 
 // Camera and Image Handling
 function openCamera() {
-    document.getElementById('cameraInput').click();
+    // Show choice dialog for camera or file upload
+    if (confirm('Use Camera to take a photo?\n\nClick OK for Camera\nClick Cancel to upload an existing image')) {
+        document.getElementById('cameraInput').click();
+    } else {
+        document.getElementById('fileInput').click();
+    }
 }
 
 // Compress image to reduce storage size
