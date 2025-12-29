@@ -1474,20 +1474,32 @@ function handleAddPhotoToReceipt(receipt, source) {
     const input = source === 'camera' ? document.getElementById('cameraInput') : document.getElementById('fileInput');
     
     // Create one-time handler
-    const addPhotoHandler = function(e) {
+    const addPhotoHandler = async function(e) {
         const file = e.target.files[0];
         if (!file) return;
         
-        compressImage(file, 1200, 0.7)
-            .then(compressedImage => {
-                receipt.images.push(compressedImage);
-                appState.currentImageIndex = receipt.images.length - 1;
-                updateImageDisplay();
-            })
-            .catch(error => {
-                console.error('Error compressing image:', error);
-                alert('Error processing image. Please try again.');
-            });
+        try {
+            const compressedImage = await compressImage(file, 1200, 0.7);
+            receipt.images.push(compressedImage);
+            appState.currentImageIndex = receipt.images.length - 1;
+            
+            // Immediately save the updated receipt to database
+            await saveReceiptToSupabase(receipt);
+            
+            // Close the modal
+            closeModal();
+            
+            // Refresh the gallery to show updated badge
+            if (currentGalleryDate) {
+                await showReceiptGallery(currentGalleryDate);
+            }
+            
+            // Show success message
+            alert(`Photo ${receipt.images.length} added successfully to receipt!`);
+        } catch (error) {
+            console.error('Error adding photo:', error);
+            alert('Error processing image. Please try again.');
+        }
         
         // Reset input
         e.target.value = '';
