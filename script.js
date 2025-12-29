@@ -1440,16 +1440,48 @@ function addAnotherPhoto() {
         return;
     }
     
-    // Trigger camera input
-    const input = document.getElementById('cameraInput');
-    input.onchange = function(e) {
+    // Show photo source modal with custom handler for adding to current receipt
+    const photoSourceModal = document.getElementById('photoSourceModal');
+    
+    // Store the current receipt context
+    const currentReceiptToUpdate = appState.currentReceipt;
+    
+    // Override the modal button handlers temporarily
+    const useCameraBtn = document.getElementById('useCameraBtn');
+    const uploadFileBtn = document.getElementById('uploadFileBtn');
+    
+    // Remove existing listeners
+    const newUseCameraBtn = useCameraBtn.cloneNode(true);
+    const newUploadFileBtn = uploadFileBtn.cloneNode(true);
+    useCameraBtn.parentNode.replaceChild(newUseCameraBtn, useCameraBtn);
+    uploadFileBtn.parentNode.replaceChild(newUploadFileBtn, uploadFileBtn);
+    
+    // Add temporary handlers for adding photo to current receipt
+    newUseCameraBtn.addEventListener('click', () => {
+        closePhotoSourceModal();
+        handleAddPhotoToReceipt(currentReceiptToUpdate, 'camera');
+    });
+    
+    newUploadFileBtn.addEventListener('click', () => {
+        closePhotoSourceModal();
+        handleAddPhotoToReceipt(currentReceiptToUpdate, 'file');
+    });
+    
+    photoSourceModal.classList.add('active');
+}
+
+function handleAddPhotoToReceipt(receipt, source) {
+    const input = source === 'camera' ? document.getElementById('cameraInput') : document.getElementById('fileInput');
+    
+    // Create one-time handler
+    const addPhotoHandler = function(e) {
         const file = e.target.files[0];
         if (!file) return;
         
         compressImage(file, 1200, 0.7)
             .then(compressedImage => {
-                appState.currentReceipt.images.push(compressedImage);
-                appState.currentImageIndex = appState.currentReceipt.images.length - 1;
+                receipt.images.push(compressedImage);
+                appState.currentImageIndex = receipt.images.length - 1;
                 updateImageDisplay();
             })
             .catch(error => {
@@ -1460,10 +1492,11 @@ function addAnotherPhoto() {
         // Reset input
         e.target.value = '';
         
-        // Restore original onchange handler
-        input.onchange = handleImageCapture;
+        // Remove this one-time handler
+        input.removeEventListener('change', addPhotoHandler);
     };
     
+    input.addEventListener('change', addPhotoHandler);
     input.click();
 }
 
