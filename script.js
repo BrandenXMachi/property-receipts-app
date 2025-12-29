@@ -1283,7 +1283,25 @@ async function deleteReceiptFromSupabase(receiptId) {
     }
 }
 
-// Multi-Photo Functions
+// Multi-Photo Functions - Swipe Support
+let touchStartX = 0;
+let touchEndX = 0;
+
+function handleSwipe() {
+    const swipeThreshold = 50; // Minimum distance for a swipe
+    const diff = touchStartX - touchEndX;
+    
+    if (Math.abs(diff) > swipeThreshold) {
+        if (diff > 0) {
+            // Swiped left - show next image
+            showNextImage();
+        } else {
+            // Swiped right - show previous image
+            showPreviousImage();
+        }
+    }
+}
+
 function showPreviousImage() {
     if (!appState.currentReceipt || !appState.currentReceipt.images) return;
     
@@ -1312,7 +1330,27 @@ function updateImageDisplay() {
     const index = appState.currentImageIndex;
     
     // Update main image
-    document.getElementById('receiptImage').src = images[index];
+    const receiptImage = document.getElementById('receiptImage');
+    receiptImage.src = images[index];
+    
+    // Add swipe event listeners for multi-photo navigation
+    if (images.length > 1) {
+        const carousel = document.querySelector('.image-carousel');
+        
+        // Remove old listeners to avoid duplicates
+        carousel.ontouchstart = null;
+        carousel.ontouchend = null;
+        
+        // Add touch event listeners
+        carousel.ontouchstart = (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        };
+        
+        carousel.ontouchend = (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        };
+    }
     
     // Update counter
     const counter = document.getElementById('imageCounter');
