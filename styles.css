@@ -89,8 +89,96 @@ body::before {
 }
 
 /* ==================================
+   HORIZONTAL CAROUSEL
+   ================================== */
+
+.carousel-container {
+    display: none;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    position: relative;
+}
+
+.carousel-container.active {
+    display: block;
+}
+
+.carousel-track {
+    display: flex;
+    width: 200%;
+    height: 100%;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.carousel-track.slide-right {
+    transform: translateX(-50%);
+}
+
+.carousel-slide {
+    width: 50%;
+    height: 100%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-dark);
+}
+
+/* Slide Arrow Button */
+.slide-arrow {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,255,255,0.15);
+    border: 3px solid var(--cyber-cyan);
+    color: var(--cyber-cyan);
+    padding: 20px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 30px var(--cyber-cyan);
+    animation: pulseArrow 2s infinite;
+}
+
+.slide-arrow:hover {
+    background: var(--cyber-cyan);
+    color: var(--bg-dark);
+    transform: translateX(-50%) scale(1.1);
+    box-shadow: 0 0 50px var(--cyber-cyan);
+}
+
+.swipe-hint {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    white-space: nowrap;
+}
+
+@keyframes pulseArrow {
+    0%, 100% {
+        box-shadow: 0 0 20px var(--cyber-cyan);
+    }
+    50% {
+        box-shadow: 0 0 40px var(--cyber-cyan), 0 0 60px var(--cyber-cyan);
+    }
+}
+
+/* ==================================
    LOGIN SCREEN
    ================================== */
+
+.carousel-slide .login-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
 
 #loginScreen {
     display: flex;

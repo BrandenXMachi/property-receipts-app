@@ -152,11 +152,11 @@ function setupEventListeners() {
         if (e.key === 'Enter') handleLogin();
     });
     
-    // Begin button - navigate to home screen
-    document.getElementById('beginButton').addEventListener('click', () => {
-        showScreen('homeScreen');
-        updatePropertyCounts();
-    });
+    // Carousel navigation
+    document.getElementById('slideToHomeBtn').addEventListener('click', slideToHome);
+    
+    // Add swipe support for carousel
+    setupCarouselSwipe();
 
     // Property cards
     document.querySelectorAll('.property-card').forEach(card => {
@@ -408,15 +408,18 @@ function handleLogin() {
         passwordInput.classList.add('fade-out');
         loginButton.classList.add('fade-out');
         
-        // After fade-out completes, hide them and show Begin button
+        // After fade-out completes, hide them and show slide arrow
         setTimeout(() => {
             passwordInput.classList.add('hidden');
             loginButton.classList.add('hidden');
             
-            // Show Begin button with fade-in animation
-            beginButton.classList.remove('hidden');
-            beginButton.classList.add('fade-in');
-        }, 400); // Match the fade-out animation duration
+            // Show slide arrow with fade-in animation
+            document.getElementById('slideToHomeBtn').classList.remove('hidden');
+            document.getElementById('slideToHomeBtn').classList.add('fade-in');
+            
+            // Clone home screen content into carousel
+            cloneHomeScreenContent();
+        }, 400);
     } else {
         const remainingAttempts = MAX_LOGIN_ATTEMPTS - appState.loginAttempts - 1;
         if (remainingAttempts > 0) {
@@ -1724,4 +1727,66 @@ async function groupSelectedReceipts() {
         console.error('Error grouping receipts:', error);
         alert('Error grouping receipts. Please try again.');
     }
+}
+
+// Carousel Navigation Functions
+function cloneHomeScreenContent() {
+    // Clone the standalone home screen content into the carousel
+    const homeScreen = document.getElementById('homeScreen');
+    const homeScreenContent = document.getElementById('homeScreenContent');
+    
+    // Clone all children from homeScreen to homeScreenContent
+    homeScreenContent.innerHTML = homeScreen.innerHTML;
+    
+    // Re-attach event listeners to cloned property cards
+    homeScreenContent.querySelectorAll('.property-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const property = card.dataset.property;
+            openProperty(property);
+        });
+    });
+    
+    // Load property counts
+    updatePropertyCounts();
+}
+
+function slideToHome() {
+    const track = document.getElementById('carouselTrack');
+    track.classList.add('slide-right');
+    
+    // After slide animation, show full home screen and hide carousel
+    setTimeout(() => {
+        document.getElementById('carouselContainer').classList.remove('active');
+        showScreen('homeScreen');
+    }, 600); // Match CSS transition duration
+}
+
+function setupCarouselSwipe() {
+    const track = document.getElementById('carouselTrack');
+    let startX = 0;
+    let currentX = 0;
+    let isDragging = false;
+    
+    track.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        isDragging = true;
+    });
+    
+    track.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        currentX = e.touches[0].clientX;
+    });
+    
+    track.addEventListener('touchend', () => {
+        if (!isDragging) return;
+        isDragging = false;
+        
+        const diff = startX - currentX;
+        const swipeThreshold = 100;
+        
+        // Swipe left (show home screen)
+        if (diff > swipeThreshold) {
+            slideToHome();
+        }
+    });
 }
