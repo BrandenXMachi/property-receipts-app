@@ -1222,11 +1222,6 @@ body::before {
     transform: scale(1.2);
 }
 
-/* Add Another Photo Button */
-.add-photo-btn {
-    width: calc(100% - 48px);
-    margin: 16px 24px;
-}
 
 .receipt-details {
     padding: 24px;

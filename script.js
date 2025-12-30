@@ -11,8 +11,7 @@ let appState = {
     audioChunks: [],
     calendarView: 'month', // 'month' or 'year'
     loginAttempts: 0,
-    lockoutUntil: null,
-    addingToExistingReceipt: null // Track when adding photos to existing receipt
+    lockoutUntil: null
 };
 
 // Constants
@@ -269,26 +268,15 @@ function setupEventListeners() {
     document.getElementById('prevImage').addEventListener('click', showPreviousImage);
     document.getElementById('nextImage').addEventListener('click', showNextImage);
     
-    // Add another photo button
-    document.getElementById('addAnotherPhoto').addEventListener('click', addAnotherPhoto);
-    
-    // Photo source modal - context-aware handlers
+    // Photo source modal handlers
     document.getElementById('useCameraBtn').addEventListener('click', () => {
         closePhotoSourceModal();
-        if (appState.addingToExistingReceipt) {
-            handleAddPhotoToReceipt(appState.addingToExistingReceipt, 'camera');
-        } else {
-            document.getElementById('cameraInput').click();
-        }
+        document.getElementById('cameraInput').click();
     });
     
     document.getElementById('uploadFileBtn').addEventListener('click', () => {
         closePhotoSourceModal();
-        if (appState.addingToExistingReceipt) {
-            handleAddPhotoToReceipt(appState.addingToExistingReceipt, 'file');
-        } else {
-            document.getElementById('fileInput').click();
-        }
+        document.getElementById('fileInput').click();
     });
     
     document.getElementById('cancelPhotoSourceBtn').addEventListener('click', closePhotoSourceModal);
@@ -799,8 +787,6 @@ function openCamera() {
 
 function closePhotoSourceModal() {
     document.getElementById('photoSourceModal').classList.remove('active');
-    // Clear the flag when modal closes
-    appState.addingToExistingReceipt = null;
 }
 
 // Compress image to reduce storage size
