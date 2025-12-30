@@ -1088,6 +1088,27 @@ body::before {
     z-index: 5;
 }
 
+.group-title-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0,0,0,0.85);
+    color: var(--cyber-cyan);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+    text-shadow: 0 0 10px var(--cyber-cyan);
+    border: 2px solid var(--cyber-cyan);
+    box-shadow: 0 0 20px var(--cyber-cyan);
+    max-width: 80%;
+    word-wrap: break-word;
+    z-index: 6;
+    pointer-events: none;
+}
+
 /* ==================================
    MODAL
    ================================== */

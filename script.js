@@ -908,6 +908,14 @@ async function showReceiptGallery(dateStr) {
             html += `<div class="photo-count-badge">📸 ${imageCount}</div>`;
         }
         
+        // Extract and show group title if it exists (first line of note for grouped receipts)
+        if (imageCount > 1 && receipt.note) {
+            const firstLine = receipt.note.split('\n')[0].trim();
+            if (firstLine && !firstLine.startsWith('[')) {
+                html += `<div class="group-title-overlay">${firstLine}</div>`;
+            }
+        }
+        
         if (receipt.voiceNote) {
             html += `
                 <div class="voice-indicator">
@@ -924,9 +932,16 @@ async function showReceiptGallery(dateStr) {
         }
 
         thumbnail.innerHTML = html;
+        
+        // Store receipt data on thumbnail for later use
+        thumbnail.dataset.receiptId = receipt.id;
+        
         thumbnail.addEventListener('click', () => {
-            appState.currentReceipt = receipt;
-            showReceiptModal(receipt);
+            // Don't open modal if in selection mode
+            if (!appState.selectionMode) {
+                appState.currentReceipt = receipt;
+                showReceiptModal(receipt);
+            }
         });
 
         grid.appendChild(thumbnail);
