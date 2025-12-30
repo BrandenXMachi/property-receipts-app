@@ -135,10 +135,14 @@ async function initializeApp() {
     const isAuth = sessionStorage.getItem('authenticated');
     if (isAuth === 'true') {
         appState.isAuthenticated = true;
-        showScreen('homeScreen');
+        // Show standalone home screen (bypass carousel)
+        document.getElementById('carouselContainer').classList.remove('active');
+        document.getElementById('homeScreen').style.display = 'block';
+        document.getElementById('homeScreen').classList.add('active');
         await updatePropertyCounts();
     } else {
-        showScreen('loginScreen');
+        // Show carousel container with login screen
+        document.getElementById('carouselContainer').classList.add('active');
     }
 
     // Set up event listeners
