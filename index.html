@@ -11,47 +11,30 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-    <!-- Horizontal Carousel Container -->
-    <div id="carouselContainer" class="carousel-container active">
-        <div class="carousel-track" id="carouselTrack">
-            <!-- Login Screen -->
-            <div class="carousel-slide">
-                <div class="login-container">
-                    <div class="logo">
-                        <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
-                            <rect width="80" height="80" rx="16" fill="#2563EB"/>
-                            <path d="M25 35L40 25L55 35V55C55 56.6569 53.6569 58 52 58H28C26.3431 58 25 56.6569 25 55V35Z" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-                            <path d="M35 58V43H45V58" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    </div>
-                    <h1>Property Manager</h1>
-                    <p class="subtitle">Your organized receipt storage</p>
-                    <div class="login-form">
-                        <input type="password" id="passwordInput" placeholder="Enter password" autocomplete="off">
-                        <button id="loginButton" class="btn-primary">Enter</button>
-                        <p id="loginError" class="error-message"></p>
-                        <div id="lockoutMessage" class="lockout-message" style="display:none;"></div>
-                    </div>
-                    <!-- Swipe/Arrow Indicator -->
-                    <button id="slideToHomeBtn" class="slide-arrow hidden">
-                        <svg width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="3">
-                            <path d="M15 10L25 20L15 30"/>
-                        </svg>
-                        <span class="swipe-hint">Swipe or Click →</span>
-                    </button>
-                </div>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="screen active">
+        <div class="login-container">
+            <div class="logo">
+                <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+                    <rect width="80" height="80" rx="16" fill="#2563EB"/>
+                    <path d="M25 35L40 25L55 35V55C55 56.6569 53.6569 58 52 58H28C26.3431 58 25 56.6569 25 55V35Z" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M35 58V43H45V58" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
             </div>
-
-            <!-- Home Screen -->
-            <div class="carousel-slide">
-                <div id="homeScreenContent">
-                </div>
+            <h1>Property Manager</h1>
+            <p class="subtitle">Your organized receipt storage</p>
+            <div class="login-form">
+                <input type="password" id="passwordInput" placeholder="Enter password" autocomplete="off">
+                <button id="loginButton" class="btn-primary">Enter</button>
+                <button id="beginButton" class="btn-primary hidden">Begin</button>
+                <p id="loginError" class="error-message"></p>
+                <div id="lockoutMessage" class="lockout-message" style="display:none;"></div>
             </div>
         </div>
     </div>
 
-    <!-- Home Screen (Standalone - kept for backwards compatibility) -->
-    <div id="homeScreen" class="screen" style="display:none;">
+    <!-- Home Screen -->
+    <div id="homeScreen" class="screen">
         <header class="app-header">
             <div></div>
             <h2>PROPERTY MANAGEMENT SYSTEM</h2>
