@@ -1366,9 +1366,6 @@ function updateImageDisplay() {
     
     // Update thumbnail strip
     updateThumbnailStrip();
-    
-    // Update "Add Another Photo" button
-    updateAddPhotoButton();
 }
 
 function updateThumbnailStrip() {
@@ -1413,66 +1410,6 @@ function updateThumbnailStrip() {
         
         strip.appendChild(thumb);
     });
-}
-
-function updateAddPhotoButton() {
-    const receipt = appState.currentReceipt;
-    if (!receipt || !receipt.images) return;
-    
-    const button = document.getElementById('addAnotherPhoto');
-    const text = document.getElementById('addPhotoText');
-    
-    if (receipt.images.length < MAX_PHOTOS_PER_RECEIPT) {
-        button.style.display = 'flex';
-        text.textContent = 'Add Another Photo';
-    } else {
-        button.style.display = 'none';
-    }
-}
-
-function addAnotherPhoto() {
-    if (!appState.currentReceipt || !appState.currentReceipt.images) return;
-    if (appState.currentReceipt.images.length >= MAX_PHOTOS_PER_RECEIPT) {
-        alert(`Maximum ${MAX_PHOTOS_PER_RECEIPT} photos per receipt.`);
-        return;
-    }
-    
-    // Set flag so photo source modal knows we're adding to existing receipt
-    appState.addingToExistingReceipt = appState.currentReceipt;
-    
-    // Show photo source modal
-    document.getElementById('photoSourceModal').classList.add('active');
-}
-
-function handleAddPhotoToReceipt(receipt, source) {
-    const input = source === 'camera' ? document.getElementById('cameraInput') : document.getElementById('fileInput');
-    
-    // Create one-time handler
-    const addPhotoHandler = async function(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-        
-        try {
-            const compressedImage = await compressImage(file, 1200, 0.7);
-            receipt.images.push(compressedImage);
-            appState.currentImageIndex = receipt.images.length - 1;
-            
-            // Update display to show the new photo (stay in modal)
-            updateImageDisplay();
-        } catch (error) {
-            console.error('Error adding photo:', error);
-            alert('Error processing image. Please try again.');
-        }
-        
-        // Reset input
-        e.target.value = '';
-        
-        // Remove this one-time handler
-        input.removeEventListener('change', addPhotoHandler);
-    };
-    
-    input.addEventListener('change', addPhotoHandler);
-    input.click();
 }
 
 function deleteImage(index) {
