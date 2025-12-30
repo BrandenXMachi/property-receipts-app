@@ -11,7 +11,9 @@ let appState = {
     audioChunks: [],
     calendarView: 'month', // 'month' or 'year'
     loginAttempts: 0,
-    lockoutUntil: null
+    lockoutUntil: null,
+    selectionMode: false,
+    selectedReceipts: []
 };
 
 // Constants
@@ -287,6 +289,11 @@ function setupEventListeners() {
     
     // Gallery + button
     document.getElementById('addReceiptToDateButton').addEventListener('click', addReceiptToCurrentDate);
+    
+    // Selection mode
+    document.getElementById('selectModeBtn').addEventListener('click', toggleSelectionMode);
+    document.getElementById('cancelSelectionBtn').addEventListener('click', cancelSelection);
+    document.getElementById('groupSelectedBtn').addEventListener('click', groupSelectedReceipts);
 }
 
 // Lockout Management
@@ -1562,4 +1569,144 @@ function addReceiptToCurrentDate() {
     
     // Show photo source modal
     openCamera();
+}
+
+// Selection Mode Functions
+function toggleSelectionMode() {
+    appState.selectionMode = !appState.selectionMode;
+    appState.selectedReceipts = [];
+    
+    if (appState.selectionMode) {
+        // Show toolbar
+        document.getElementById('selectionToolbar').style.display = 'flex';
+        
+        // Add selection-mode class to all thumbnails
+        document.querySelectorAll('.receipt-thumbnail').forEach(thumb => {
+            thumb.classList.add('selection-mode');
+            
+            // Add click handler for selection
+            thumb.onclick = function(e) {
+                e.stopPropagation();
+                toggleReceiptSelection(this);
+            };
+        });
+    } else {
+        // Hide toolbar
+        document.getElementById('selectionToolbar').style.display = 'none';
+        
+        // Remove selection-mode class
+        document.querySelectorAll('.receipt-thumbnail').forEach(thumb => {
+            thumb.classList.remove('selection-mode', 'selected');
+        });
+        
+        // Re-render gallery to restore original click handlers
+        showReceiptGallery(currentGalleryDate);
+    }
+    
+    updateSelectionCount();
+}
+
+function toggleReceiptSelection(thumbnailElement) {
+    const thumbnails = Array.from(document.querySelectorAll('.receipt-thumbnail'));
+    const index = thumbnails.indexOf(thumbnailElement);
+    
+    if (thumbnailElement.classList.contains('selected')) {
+        thumbnailElement.classList.remove('selected');
+        appState.selectedReceipts = appState.selectedReceipts.filter(i => i !== index);
+    } else {
+        thumbnailElement.classList.add('selected');
+        appState.selectedReceipts.push(index);
+    }
+    
+    updateSelectionCount();
+}
+
+function updateSelectionCount() {
+    const count = appState.selectedReceipts.length;
+    document.getElementById('selectionCount').textContent = `${count} selected`;
+    
+    // Enable/disable group button
+    const groupBtn = document.getElementById('groupSelectedBtn');
+    groupBtn.disabled = count < 2;
+    if (count < 2) {
+        groupBtn.style.opacity = '0.5';
+        groupBtn.style.cursor = 'not-allowed';
+    } else {
+        groupBtn.style.opacity = '1';
+        groupBtn.style.cursor = 'pointer';
+    }
+}
+
+function cancelSelection() {
+    toggleSelectionMode();
+}
+
+async function groupSelectedReceipts() {
+    if (appState.selectedReceipts.length < 2) {
+        alert('Please select at least 2 receipts to group.');
+        return;
+    }
+    
+    const groupTitle = prompt('Enter a title for this group:');
+    if (!groupTitle) return;
+    
+    // Get all receipts from gallery
+    const allReceipts = await getReceiptsByProperty(appState.currentProperty);
+    const dateReceipts = allReceipts.filter(r => r.date === currentGalleryDate);
+    
+    // Get selected receipt objects
+    const selectedReceiptObjects = appState.selectedReceipts
+        .sort((a, b) => a - b) // Sort to maintain order
+        .map(index => dateReceipts[index]);
+    
+    if (selectedReceiptObjects.length === 0) {
+        alert('No receipts selected.');
+        return;
+    }
+    
+    // Create a new grouped receipt
+    // Use first selected receipt as base, merge all images
+    const firstReceipt = selectedReceiptObjects[0];
+    const allImages = selectedReceiptObjects.flatMap(r => r.images || [r.image || '']);
+    
+    // Calculate total amount
+    const totalAmount = selectedReceiptObjects.reduce((sum, r) => 
+        sum + (parseFloat(r.amount) || 0), 0);
+    
+    // Combine notes
+    const combinedNotes = selectedReceiptObjects
+        .map((r, i) => r.note ? `[${i + 1}] ${r.note}` : '')
+        .filter(n => n)
+        .join('\n');
+    
+    // Create new grouped receipt
+    const groupedReceipt = {
+        id: Date.now().toString(),
+        property: appState.currentProperty,
+        images: allImages,
+        date: currentGalleryDate,
+        amount: totalAmount.toFixed(2),
+        category: firstReceipt.category || 'other',
+        note: `${groupTitle}\n\n${combinedNotes}`,
+        voiceNote: null
+    };
+    
+    try {
+        // Save the grouped receipt
+        await saveReceiptToSupabase(groupedReceipt);
+        
+        // Delete the original receipts
+        for (const receipt of selectedReceiptObjects) {
+            await deleteReceiptFromSupabase(receipt.id);
+        }
+        
+        // Exit selection mode and refresh gallery
+        cancelSelection();
+        await showReceiptGallery(currentGalleryDate);
+        
+        alert(`Successfully grouped ${selectedReceiptObjects.length} receipts under "${groupTitle}"`);
+    } catch (error) {
+        console.error('Error grouping receipts:', error);
+        alert('Error grouping receipts. Please try again.');
+    }
 }

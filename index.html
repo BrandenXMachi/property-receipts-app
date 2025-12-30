@@ -245,8 +245,18 @@
                 </svg>
             </button>
             <h2 id="galleryDate">Receipts</h2>
-            <div></div>
+            <button id="selectModeBtn" class="btn-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <path d="M9 12l2 2 4-4"/>
+                </svg>
+            </button>
         </header>
+        <div class="selection-toolbar" id="selectionToolbar" style="display:none;">
+            <span id="selectionCount">0 selected</span>
+            <button id="groupSelectedBtn" class="btn-primary">Group Selected</button>
+            <button id="cancelSelectionBtn" class="btn-secondary">Cancel</button>
+        </div>
         <div class="receipt-grid" id="receiptGrid"></div>
         
         <!-- Floating Add Button for Gallery -->
