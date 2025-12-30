@@ -1471,19 +1471,8 @@ function handleAddPhotoToReceipt(receipt, source) {
             receipt.images.push(compressedImage);
             appState.currentImageIndex = receipt.images.length - 1;
             
-            // Immediately save the updated receipt to database
-            await saveReceiptToSupabase(receipt);
-            
-            // Close the modal
-            closeModal();
-            
-            // Refresh the gallery to show updated badge
-            if (currentGalleryDate) {
-                await showReceiptGallery(currentGalleryDate);
-            }
-            
-            // Show success message
-            alert(`Photo ${receipt.images.length} added successfully to receipt!`);
+            // Update display to show the new photo (stay in modal)
+            updateImageDisplay();
         } catch (error) {
             console.error('Error adding photo:', error);
             alert('Error processing image. Please try again.');
