@@ -669,6 +669,10 @@ async function renderCalendar() {
         day.addEventListener('click', () => {
             if (dayReceipts.length > 0) {
                 showReceiptGallery(dateStr);
+            } else {
+                // Empty date — open photo picker with this date pre-filled
+                currentGalleryDate = dateStr;
+                addReceiptToCurrentDate();
             }
         });
 

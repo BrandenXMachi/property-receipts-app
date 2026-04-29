@@ -943,6 +943,17 @@ body::before {
     box-shadow: 0 0 50px var(--cyber-pink), 0 0 70px var(--cyber-cyan);
 }
 
+/* Gallery date-mode FAB — red to signal "adding to a specific date" */
+#addReceiptToDateButton {
+    background: linear-gradient(135deg, #FF2200, #CC0000);
+    border-color: #FF6644;
+    box-shadow: 0 0 30px #FF2200, 0 0 10px #FF6644;
+}
+
+#addReceiptToDateButton:hover {
+    box-shadow: 0 0 50px #FF2200, 0 0 70px #FF6644;
+}
+
 /* ==================================
    RECEIPT GALLERY
    ================================== */
