@@ -956,20 +956,79 @@ async function showCategoryReceipts(category) {
 
     if (receipts.length === 0) return;
 
-    // Group by date
-    const byDate = {};
+    // Category display names
+    const categoryNames = {
+        'maintenance': '🔧 Maintenance & Repairs',
+        'utilities': '💡 Utilities',
+        'insurance': '🛡️ Insurance',
+        'property-tax': '🏛️ Property Tax',
+        'landscaping': '🌿 Landscaping',
+        'management': '📋 Management Fees',
+        'improvements': '🏗️ Improvements',
+        'other': '📄 Other'
+    };
+
+    // Set gallery title to category name
+    document.getElementById('galleryDate').textContent = categoryNames[category] || category;
+
+    // Clear current gallery date — this is a category view, not a date view
+    currentGalleryDate = null;
+
+    const grid = document.getElementById('receiptGrid');
+    grid.innerHTML = '';
+
+    // Sort all category receipts by date descending (newest first)
+    receipts.sort((a, b) => new Date(b.date) - new Date(a.date));
+
     receipts.forEach(receipt => {
-        if (!byDate[receipt.date]) {
-            byDate[receipt.date] = [];
+        const thumbnail = document.createElement('div');
+        thumbnail.className = 'receipt-thumbnail';
+
+        const firstImage = receipt.images ? receipt.images[0] : (receipt.image || '');
+        const imageCount = receipt.images ? receipt.images.length : (receipt.image ? 1 : 0);
+
+        let html = `<img src="${firstImage}" alt="Receipt">`;
+
+        if (imageCount > 1) {
+            html += `<div class="photo-count-badge">📸 ${imageCount}</div>`;
         }
-        byDate[receipt.date].push(receipt);
+
+        if (imageCount > 1 && receipt.note) {
+            const firstLine = receipt.note.split('\n')[0].trim();
+            if (firstLine && !firstLine.startsWith('[')) {
+                html += `<div class="group-title-overlay">${firstLine}</div>`;
+            }
+        }
+
+        if (receipt.voiceNote) {
+            html += `
+                <div class="voice-indicator">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M8 1C6.89543 1 6 1.89543 6 3V8C6 9.10457 6.89543 10 8 10C9.10457 10 10 9.10457 10 8V3C10 1.89543 9.10457 1 8 1Z"/>
+                        <path d="M13 8C13 10.7614 10.7614 13 8 13C5.23858 13 3 10.7614 3 8"/>
+                    </svg>
+                </div>
+            `;
+        }
+
+        if (receipt.amount) {
+            html += `<div class="receipt-info">$${parseFloat(receipt.amount).toFixed(2)}</div>`;
+        }
+
+        thumbnail.innerHTML = html;
+        thumbnail.dataset.receiptId = receipt.id;
+
+        thumbnail.addEventListener('click', () => {
+            if (!appState.selectionMode) {
+                appState.currentReceipt = receipt;
+                showReceiptModal(receipt);
+            }
+        });
+
+        grid.appendChild(thumbnail);
     });
 
-    // Show most recent date
-    const dates = Object.keys(byDate).sort().reverse();
-    if (dates.length > 0) {
-        await showReceiptGallery(dates[0]);
-    }
+    showScreen('galleryScreen');
 }
 
 // Receipt Modal
