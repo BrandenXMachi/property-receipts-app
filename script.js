@@ -173,6 +173,7 @@ function setupEventListeners() {
     });
 
     document.getElementById('galleryBackButton').addEventListener('click', () => {
+        currentGalleryDate = null; // Clear date context when leaving gallery
         showScreen('propertyScreen');
         updatePropertyDisplay();
     });
@@ -236,8 +237,11 @@ function setupEventListeners() {
         renderSummary();
     });
 
-    // Add receipt
-    document.getElementById('addReceiptButton').addEventListener('click', openCamera);
+    // Add receipt (clear gallery date so purple button always uses today's local date)
+    document.getElementById('addReceiptButton').addEventListener('click', () => {
+        currentGalleryDate = null;
+        openCamera();
+    });
     document.getElementById('cameraInput').addEventListener('change', handleImageCapture);
     document.getElementById('fileInput').addEventListener('change', handleImageCapture);
 
@@ -840,15 +844,18 @@ function handleImageCapture(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    // Compress image before storing
+    // Use currentGalleryDate if a specific date was selected, otherwise use today's LOCAL date
+    const now = new Date();
+    const localToday = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const receiptDate = currentGalleryDate || localToday;
+
     compressImage(file, 1200, 0.7)
         .then(compressedImage => {
-            // Create new receipt with compressed image array
             const receipt = {
                 id: Date.now().toString(),
                 property: appState.currentProperty,
-                images: [compressedImage], // Array of images
-                date: new Date().toISOString().split('T')[0],
+                images: [compressedImage],
+                date: receiptDate,
                 amount: '',
                 category: 'other',
                 note: '',
@@ -1596,56 +1603,7 @@ function addReceiptToCurrentDate() {
         alert('No date selected');
         return;
     }
-    
-    // Temporarily override handleImageCapture to set the date
-    const originalHandler = window.handleImageCaptureOriginal || handleImageCapture;
-    
-    // Create a wrapper that sets the date
-    const tempHandler = function(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        compressImage(file, 1200, 0.7)
-            .then(compressedImage => {
-                // Create new receipt with the gallery date
-                const receipt = {
-                    id: Date.now().toString(),
-                    property: appState.currentProperty,
-                    images: [compressedImage],
-                    date: currentGalleryDate, // Use the current gallery date
-                    amount: '',
-                    category: 'other',
-                    note: '',
-                    voiceNote: null
-                };
-
-                appState.currentReceipt = receipt;
-                appState.currentImageIndex = 0;
-                showReceiptModal(receipt);
-            })
-            .catch(error => {
-                console.error('Error compressing image:', error);
-                alert('Error processing image. Please try again.');
-            });
-
-        // Reset input
-        event.target.value = '';
-        
-        // Restore original handlers
-        document.getElementById('cameraInput').onchange = originalHandler;
-        document.getElementById('fileInput').onchange = originalHandler;
-    };
-    
-    // Store original if not already stored
-    if (!window.handleImageCaptureOriginal) {
-        window.handleImageCaptureOriginal = handleImageCapture;
-    }
-    
-    // Set temporary handlers
-    document.getElementById('cameraInput').onchange = tempHandler;
-    document.getElementById('fileInput').onchange = tempHandler;
-    
-    // Show photo source modal
+    // currentGalleryDate is set — handleImageCapture will use it automatically
     openCamera();
 }
 
